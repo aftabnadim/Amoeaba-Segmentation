@@ -1,0 +1,121 @@
+Program 1: Cellpose
+For cellpose I first analyze the images using this code, the output images are images containing the masks. 
+For all the channels we used the Cyto model, and the diameter we chose for PI, AO and CW is 30  .
+import torch
+import numpy as np import time
+import threading
+start_time = time.time()
+import time, os, sys
+from urllib.parse import urlparse import matplotlib.pyplot as plt import matplotlib as mpl
+import matplotlib matplotlib.use('Agg') mpl.rcParams['figure.dpi'] = 300 from cellpose import utils, io
+# ADD UR FILE PATH
+files = []
+# assign directory
+directory
+= r'D:'
+# iterate over files in
+# that directory
+for filename in os.scandir(directory):
+if filename.is_file(): files.append(filename.path)
+# RUN CELLPOSE
+from cellpose import models, io
+# DEFINE CELLPOSE MODEL
+# model_type='cyto' or model_type='nuclei'
+model = models.Cellpose(gpu=True, model_type="cyto") ## model = models.Cellpose(gpu=True, model_type='cyto')
+# define CHANNELS to run segementation on
+# grayscale=0, R=1, G=2, B=3
+# channels = [cytoplasm, nucleus]
+# if NUCLEUS channel does not exist, set the second channel to 0 # channels = [0,0]
+# IF ALL YOUR IMAGES ARE THE SAME TYPE, you can give a list with 2 elements # channels = [0,0] # IF YOU HAVE GRAYSCALE
+# channels = [2,3] # IF YOU HAVE G=cytoplasm and B=nucleus
+# channels = [2,1] # IF YOU HAVE G=cytoplasm and R=nucleus
+# or if you have different types of channels in each image
+channels = [[0,0]]
+# if diameter is set to None, the size of the cells is estimated on a per image basis # you can set the average cell `diameter` in pixels yourself (recommended)
+# diameter can be a list or a single number for all images
+# you can run all in a list e.g.
+# >>> imgs = [io.imread(filename) in for filename in files]
+# >>> masks, flows, styles, diams = model.eval(imgs, diameter=None, channels=channels)
+# >>> io.masks_flows_to_seg(imgs, masks, flows, diams, files, channels) # >>> io.save_to_png(imgs, masks, flows, files)
+# or in a loop
+  import threading import time
+class StopFlag:
+def __init__(self):
+self.stop = False
+stop_flag = StopFlag()
+def save_masks_with_timeout(img, masks, flows, filename):
+# Define a stop flag
+stop_flag = StopFlag()
+# Define a thread function that calls io.save_masks
+def save_masks_thread(img):
+io.save_masks(img, masks, flows, filename, save_txt=False)
+# Define a timer that sets the stop flag after the timeout period
+t = threading.Timer(30.0, lambda: setattr(stop_flag, "stop", True))
+# Start the timer and thread
+t.start()
+thread = threading.Thread(target=save_masks_thread, args=(img,)) thread.start()
+# Wait for the thread to complete or time out
+thread.join(timeout=30.0) # Cancel the timer
+t.cancel()
+# Print status message
+if thread.is_alive():
+print("Saving masks taking too long, skipping...")
+else:
+print("step2 done")
+# Process each file in the directory
+for filename in files: for chan in channels:
+img = io.imread(filename)
+masks, flows, styles, diams = model.eval(img, diameter=30, channels=chan) print("step1 done")
+# Save the masks in a separate thread with a timeout of 30 seconds
+  stop_flag = StopFlag()
+save_masks_with_timeout(img, masks, flows, filename)
+# Add a break statement if the timeout occurred
+if stop_flag.stop:
+print("Saving masks taking too long, skipping...") break
+print("step2 done")
+continue # continue to the next image after the inner loop finishes
+Then we needed to change the cellpose labelled images name, because label to ROI need the labelled images contain the word label instead of cp_masks, 
+so we ran the following code to change the images names
+import os
+# Set the directory path and original and new basenames
+directory_path = r'D:\screen5\Cell_toxicity_PI\Propidium_Iodide_Amoeba_Aftab ( Modified)_20230323_123054\Images\CELLPOSE'
+original_basename = "Screen5"
+extension = ".png"
+# Change the current working directory to the directory path
+os.chdir(directory_path)
+# Loop through each file in the directory
+for file in os.listdir(directory_path):
+# Check if the file has the original basename and ends with "_cp_masks"
+if file.startswith(original_basename) and file.endswith("_cp_masks" + extension):
+# Replace "_cp_masks" with "_label" to create the new filename
+new_filename = file.replace("_cp_masks", "_label")
+# Rename the file with the new filename
+os.rename(os.path.join(directory_path, file), os.path.join(directory_path, new_fil
+ename))
+print(f"Renamed {os.path.join(directory_path, file)} to {os.path.join(directory_p
+ath, new_filename)}") else:
+print(f"Skipped {file}") print("Done.")
+After that I used lable to ROI plugin in fiji, the outputs of this function contains masked images and excel files containing the number of masks in each image,
+  then we need to summarize all the excel files in on excel file, for that I used the following code:
+import os
+import csv
+# Define the folder path where CSV files are located
+folder_path = r''
+# Define the output CSV file path
+output_file_path = r''
+# Define the header row for the output CSV file
+header = ["File Name", "Total Lines"]
+# Initialize the data list to store the file name and total lines
+data = []
+# Loop through all files in the folder
+for file_name in os.listdir(folder_path): # Check if the file is a CSV file
+if file_name.endswith(".csv"):
+# Open the file and count the number of lines
+with open(os.path.join(folder_path, file_name)) as csv_file: line_count = sum(1 for line in csv_file)
+# Append the file name and line count to the data list
+data.append([file_name, line_count])
+# Write the data to the output CSV file
+with open(output_file_path, mode="w", newline="") as csv_file: writer = csv.writer(csv_file)
+writer.writerow(header)
+writer.writerows(data)
+print("Done")
