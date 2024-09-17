@@ -1,0 +1,21 @@
+Program 2: Stardist code
+For Stardist plugin in Fiji I used the Verstile model with the default settings and run the following Macro code inside Fiji for the batch processing :
+#@ DatasetIOService io
+#@ CommandService command
+function action(input, output, filename) { open(input + filename);
+run("8-bit");
+run("Command From Macro", "command=[de.csbdresden.stardist.StarDist2D]," +
+"args=['input':'" + filename + "'," +
+"'modelChoice':'Versatile (fluorescent nuclei)'," +
+"'normalizeInput':'true', 'percentileBottom':'1.0'," + "'percentileTop':'100.0', 'probThresh':'0.2'," +
+"'nmsThresh':'0.2', 'outputType':'ROI Manager'," +
+"'nTiles':'7', 'excludeBoundary':'2', 'roiPosition':'Automatic'," + "'verbose':'false', 'showCsbdeepProgress':'false', 'showProbAndDist':'false'],
+process=[false]"); roiManager("Measure");
+savePath = output + replace(filename, ".tif", "") + "-results.csv"; print(savePath);
+saveAs("Results", savePath);
+run("Clear Results");
+close(); }
+theinput = "D:/screen5/Whole_well_plate/Plate2/BF_Calc_AO_96_well_Tecan_Falcon (Modified)_20230331_095428/Images/CW/";
+output = "D:/screen5/Whole_well_plate/Plate2/BF_Calc_AO_96_well_Tecan_Falcon (Modified)_20230331_095428/Images/CW/stardist/";
+list = getFileList(theinput); for (i = 0; i < list.length; i++) {
+action(theinput, output, list[i]); }
