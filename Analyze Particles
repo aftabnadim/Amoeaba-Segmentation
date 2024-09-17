@@ -1,0 +1,9 @@
+Prior to analysis, the images were preprocessed by converting to 8-bit and applying a threshold (12, 255, raw). We used the "Analyze Particles" 
+function to segment and quantify the A. castellanii cells, specifying that only particles larger than 40 pixels were counted. The output of this 
+function was a CSV file containing the names of each image and the corresponding number of particles detected. 
+The following code was used: 
+ 
+ 
+run("8-bit"); 
+setThreshold(12, 255, "raw"); 
+run("Analyze Particles...", "size=40-1000 show=[Overlay Masks] display exclude clear summarize overlay"); 
